@@ -4,6 +4,7 @@ import Head from 'next/head';
 import Image from 'next/image';
 import Breadcrumbs from '../../components/Breadcrumbs';
 import ProductGrid from '../../components/ProductGrid';
+import ImageCompare from '../../components/ImageCompare';
 import { formatPrice, useCartStore } from '../../lib/cart';
 import { getAllProductSlugs, getProductBySlug, getProductsByIds, getProducts } from '../../lib/api';
 
@@ -17,8 +18,19 @@ export default function ProductDetailPage({ product, relatedProducts }) {
   const addItem = useCartStore((state) => state.addItem);
   const [qty, setQty] = useState(1);
   const [activeImage, setActiveImage] = useState(product.images?.[0]?.src || 'https://placehold.co/900x1200/f1f1ef/111');
+  const [compareMode, setCompareMode] = useState(false);
+  const [selectedSize, setSelectedSize] = useState('');
+  const [selectedColor, setSelectedColor] = useState('');
   const sizes = useMemo(() => valuesToList(product.acf?.size), [product.acf?.size]);
   const colors = useMemo(() => valuesToList(product.acf?.color), [product.acf?.color]);
+  
+  const hasMultipleImages = product.images?.length >= 2;
+  const isGorra = useMemo(() => {
+    return product.categories?.some((cat) => 
+      String(cat.name || '').toLowerCase().includes('gorra')
+    );
+  }, [product.categories]);
+  const showCompareMode = hasMultipleImages && isGorra;
 
   return (
     <>
@@ -32,16 +44,55 @@ export default function ProductDetailPage({ product, relatedProducts }) {
 
         <section className="grid gap-8 lg:grid-cols-[1.2fr,1fr]">
           <div className="panel p-4">
-            <div className="relative aspect-[4/5] overflow-hidden bg-[#efefec]">
-              <Image src={activeImage} alt={product.name} fill className="object-cover" sizes="50vw" />
-            </div>
-            <div className="mt-3 grid grid-cols-5 gap-2">
-              {product.images?.map((image) => (
-                <button key={image.id} type="button" onClick={() => setActiveImage(image.src)} className="relative aspect-square overflow-hidden border border-[#e2e2de] bg-[#efefec]">
-                  <Image src={image.src} alt={product.name} fill className="object-cover" sizes="100px" />
+            {showCompareMode && (
+              <div className="mb-3 flex items-center justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setCompareMode(false)}
+                  className={`px-3 py-1.5 text-xs font-semibold uppercase tracking-wider transition ${
+                    !compareMode ? 'bg-[#111] text-white' : 'bg-[#f0f0f0] text-[#666] hover:bg-[#e5e5e5]'
+                  }`}
+                >
+                  Normal
                 </button>
-              ))}
-            </div>
+                <button
+                  type="button"
+                  onClick={() => setCompareMode(true)}
+                  className={`px-3 py-1.5 text-xs font-semibold uppercase tracking-wider transition ${
+                    compareMode ? 'bg-[#111] text-white' : 'bg-[#f0f0f0] text-[#666] hover:bg-[#e5e5e5]'
+                  }`}
+                >
+                  Comparar
+                </button>
+              </div>
+            )}
+
+            {compareMode && showCompareMode ? (
+              <ImageCompare
+                beforeImage={product.images[0].src}
+                afterImage={product.images[1].src}
+              />
+            ) : (
+              <>
+                <div className="relative aspect-[4/5] overflow-hidden bg-[#efefec]">
+                  <Image src={activeImage} alt={product.name} fill className="object-cover" sizes="50vw" />
+                </div>
+                <div className="mt-3 grid grid-cols-5 gap-2">
+                  {product.images?.map((image) => (
+                    <button
+                      key={image.id}
+                      type="button"
+                      onClick={() => setActiveImage(image.src)}
+                      className={`relative aspect-square overflow-hidden border bg-[#efefec] transition ${
+                        activeImage === image.src ? 'border-[#111] ring-2 ring-[#111]' : 'border-[#e2e2de]'
+                      }`}
+                    >
+                      <Image src={image.src} alt={product.name} fill className="object-cover" sizes="100px" />
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
           </div>
 
           <div className="panel p-6">
@@ -53,20 +104,69 @@ export default function ProductDetailPage({ product, relatedProducts }) {
               <div>
                 <p className="text-[11px] uppercase tracking-[0.14em] text-[#666]">Talla</p>
                 <div className="mt-2 flex flex-wrap gap-2">
-                  {sizes.length ? sizes.map((size) => <span key={size} className="border border-[#d8d8d4] px-3 py-1 text-xs uppercase text-[#111]">{size}</span>) : <span className="text-xs text-[#888]">Sin info</span>}
+                  {sizes.length ? sizes.map((size) => (
+                    <button
+                      key={size}
+                      type="button"
+                      onClick={() => setSelectedSize(size)}
+                      className={`border px-3 py-1 text-xs uppercase transition ${
+                        selectedSize === size
+                          ? 'border-[#111] bg-[#111] text-white'
+                          : 'border-[#d8d8d4] text-[#111] hover:border-[#111]'
+                      }`}
+                    >
+                      {size}
+                    </button>
+                  )) : <span className="text-xs text-[#888]">Sin info</span>}
                 </div>
               </div>
               <div>
                 <p className="text-[11px] uppercase tracking-[0.14em] text-[#666]">Color</p>
                 <div className="mt-2 flex flex-wrap gap-2">
-                  {colors.length ? colors.map((color) => <span key={color} className="border border-[#d8d8d4] px-3 py-1 text-xs uppercase text-[#111]">{color}</span>) : <span className="text-xs text-[#888]">Sin info</span>}
+                  {colors.length ? colors.map((color) => (
+                    <button
+                      key={color}
+                      type="button"
+                      onClick={() => setSelectedColor(color)}
+                      className={`border px-3 py-1 text-xs uppercase transition ${
+                        selectedColor === color
+                          ? 'border-[#111] bg-[#111] text-white'
+                          : 'border-[#d8d8d4] text-[#111] hover:border-[#111]'
+                      }`}
+                    >
+                      {color}
+                    </button>
+                  )) : <span className="text-xs text-[#888]">Sin info</span>}
                 </div>
               </div>
             </div>
 
-            <div className="mt-8 flex items-center gap-2">
-              <input type="number" min="1" value={qty} onChange={(e) => setQty(Math.max(1, Number(e.target.value) || 1))} className="w-20 border border-[#d8d8d4] px-3 py-2 text-[#111]" />
-              <button type="button" onClick={() => addItem(product, qty)} className="bg-[#111] px-6 py-3 text-[11px] font-semibold uppercase tracking-[0.16em] text-white">Añadir al carrito</button>
+            <div className="mt-8 flex flex-col gap-3">
+              <div className="flex items-center gap-2">
+                <input type="number" min="1" value={qty} onChange={(e) => setQty(Math.max(1, Number(e.target.value) || 1))} className="w-20 border border-[#d8d8d4] px-3 py-2 text-[#111]" />
+                <button 
+                  type="button" 
+                  onClick={() => {
+                    if (sizes.length && !selectedSize) {
+                      alert('Por favor, selecciona una talla');
+                      return;
+                    }
+                    if (colors.length && !selectedColor) {
+                      alert('Por favor, selecciona un color');
+                      return;
+                    }
+                    addItem({ ...product, selectedSize, selectedColor }, qty);
+                  }} 
+                  className="flex-1 bg-[#111] px-6 py-3 text-[11px] font-semibold uppercase tracking-[0.16em] text-white transition hover:bg-[#333]"
+                >
+                  Añadir al carrito
+                </button>
+              </div>
+              {selectedSize && selectedColor && (
+                <p className="text-xs text-[#666]">
+                  Seleccionado: {selectedSize} - {selectedColor}
+                </p>
+              )}
             </div>
 
             <div className="product-prose mt-8 border border-[#e7e7e3] bg-[#fafaf9] p-5">

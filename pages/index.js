@@ -2,7 +2,9 @@
 import Head from 'next/head';
 import Image from 'next/image';
 import Link from 'next/link';
+import { useEffect, useState } from 'react';
 import ProductGrid from '../components/ProductGrid';
+import { formatPrice } from '../lib/cart';
 import { getCollections, getFeaturedProducts } from '../lib/api';
 import heroImage from '../assets/velos-hero.png';
 
@@ -13,6 +15,33 @@ function getImage(product) {
 export default function Home({ featuredProducts, collections }) {
   const hero = featuredProducts?.[0];
   const spotlight = featuredProducts?.slice(0, 3) || [];
+  const [scrollY, setScrollY] = useState(0);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+    
+    let ticking = false;
+    
+    const handleScroll = () => {
+      if (!ticking) {
+        window.requestAnimationFrame(() => {
+          setScrollY(window.scrollY);
+          ticking = false;
+        });
+        ticking = true;
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  const scrollProgress = scrollY / 800;
+  const titleScale = Math.max(1 - scrollProgress, 0.15);
+  const titleY = Math.min(scrollY * 0.6, 400);
+  const titleOpacity = Math.max(1 - scrollY / 500, 0);
+  const contentOpacity = Math.max(1 - scrollY / 300, 0);
 
   return (
     <>
@@ -21,94 +50,134 @@ export default function Home({ featuredProducts, collections }) {
         <meta name="description" content="Tienda oficial Velos. Sportwear premium con enfoque editorial." />
       </Head>
 
-      <section className="relative h-[72vh] min-h-[560px] w-full overflow-hidden border-b border-[#e7e7e3]">
-        <Image src={heroImage} alt="Velos snake hero" fill priority className="object-cover" sizes="100vw" />
-        <div className="absolute inset-0 bg-black/25" />
+      <section className="relative h-screen w-full overflow-hidden">
+        <Image src={heroImage} alt="Velos hero" fill priority className="object-cover" sizes="100vw" />
+        <div className="absolute inset-0 bg-black/30" />
 
-        <div className="container-page relative z-10 flex h-full items-end pb-14 text-white">
-          <div className="max-w-2xl">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.28em] text-white/80">Spring / Summer 2026</p>
-            <h1 className="mt-3 text-4xl font-black uppercase leading-[0.92] sm:text-6xl">Velos New Collection</h1>
-            <p className="mt-4 max-w-xl text-sm text-white/90 sm:text-base">
-              Lorem ipsum dolor sit amet consectetur adipiscing elit, volutpat orci placerat ullamcorper dui lobortis nunc ultricies, nullam justo rhoncus ante litora laoreet.
+        <div className="container-page relative z-10 flex h-full flex-col items-center justify-center text-center text-white">
+          {mounted && (
+            <div 
+              className="fixed left-0 right-0 z-50 flex items-center justify-center transition-all duration-200 ease-out"
+              style={{
+                top: '35vh',
+                transform: `translateY(calc(-50% + ${titleY}px)) scale(${titleScale})`,
+                opacity: titleOpacity,
+                pointerEvents: 'none'
+              }}
+            >
+              <Image 
+                src="/velos.png" 
+                alt="Velos" 
+                width={400} 
+                height={120}
+                className="h-auto w-[180px] sm:w-[220px] md:w-[280px] lg:w-[320px]"
+                priority
+                style={{
+                  filter: 'brightness(0) invert(1)'
+                }}
+              />
+            </div>
+          )}
+          
+          <div 
+            className="mt-32 transition-opacity duration-300"
+            style={{
+              opacity: contentOpacity
+            }}
+          >
+            <p className="text-lg font-medium uppercase tracking-[0.2em] sm:text-xl">
+              Spring Summer 2026
             </p>
-            <div className="mt-7 flex gap-3">
-              <Link href="/products" className="bg-white px-6 py-3 text-[11px] font-semibold uppercase tracking-[0.16em] text-[#111]">Shop now</Link>
-              <Link href="/products" className="border border-white/50 px-6 py-3 text-[11px] font-semibold uppercase tracking-[0.16em] text-white">View lookbook</Link>
+            <div className="mt-10">
+              <Link 
+                href="/products" 
+                className="inline-block bg-white px-10 py-4 text-sm font-bold uppercase tracking-[0.1em] text-black transition hover:bg-black hover:text-white"
+              >
+                Explorar colección
+              </Link>
             </div>
           </div>
         </div>
       </section>
 
-      <section className="container-page mt-16">
-        <div className="grid gap-4 md:grid-cols-3">
-          {spotlight.map((item, index) => (
-            <article key={item.id} className="group">
-              <div className="relative aspect-[3/4] overflow-hidden bg-[#efefec]">
-                <Image src={getImage(item)} alt={item.name} fill className="object-cover transition duration-500 group-hover:scale-[1.02]" sizes="(max-width: 768px) 100vw, 33vw" />
-              </div>
-              <div className="mt-4 flex items-center justify-between gap-3 border-b border-[#ecece8] pb-4">
-                <div>
-                  <p className="text-[11px] uppercase tracking-[0.14em] text-[#777]">Look {String(index + 1).padStart(2, '0')}</p>
-                  <h3 className="mt-1 text-lg font-semibold uppercase text-[#111]">{item.name}</h3>
+      {spotlight.length > 0 && (
+        <section className="container-page mt-24">
+          <div className="mb-10">
+            <h2 className="text-3xl font-black uppercase tracking-tight text-black md:text-4xl">Destacados</h2>
+          </div>
+          <div className="grid gap-4 sm:gap-5 md:grid-cols-3">
+            {spotlight.map((item, index) => (
+              <Link key={item.id} href={`/product/${item.slug}`} className="group">
+                <div className="relative aspect-[3/4] overflow-hidden bg-[#eeede9]">
+                  <Image
+                    src={getImage(item)}
+                    alt={item.name}
+                    fill
+                    className="object-cover transition duration-700 ease-out group-hover:scale-105"
+                    sizes="(max-width: 768px) 100vw, 33vw"
+                  />
                 </div>
-                <Link href={`/product/${item.slug}`} className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#111] underline underline-offset-4">
-                  Ver producto
-                </Link>
-              </div>
-            </article>
-          ))}
-        </div>
-      </section>
+                <div className="mt-4 space-y-1.5">
+                  <h3 className="text-sm font-bold uppercase tracking-tight text-black">{item.name}</h3>
+                  <p className="text-sm font-semibold text-black">{formatPrice(item.price)}</p>
+                </div>
+              </Link>
+            ))}
+          </div>
+        </section>
+      )}
 
       {featuredProducts?.length ? (
-        <section className="container-page mt-16">
-          <div className="mb-6 flex items-end justify-end">
-            <Link href="/products" className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#444]">View all</Link>
+        <section className="container-page mt-24">
+          <div className="mb-10 flex items-end justify-between">
+            <h2 className="text-3xl font-black uppercase tracking-tight text-black md:text-4xl">Nuevos productos</h2>
+            <Link href="/products" className="text-sm font-bold uppercase tracking-wide text-black hover:underline">Ver todo</Link>
           </div>
           <ProductGrid products={featuredProducts} />
         </section>
       ) : null}
 
-      <section className="container-page mt-16">
-        <div className="mb-6">
-          <p className="kicker">Shop by Category</p>
-          <h2 className="section-title mt-2">Collections</h2>
+      <section className="mt-24">
+        <div className="container-page mb-12">
+          <h2 className="text-3xl font-black uppercase tracking-tight text-black md:text-4xl">Colecciones</h2>
         </div>
 
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {collections.map((collection) => {
-            const isCamisetas = String(collection.name || '').toLowerCase().includes('camisetas');
-
-            if (isCamisetas) {
-              return (
-                <Link
-                  key={collection.id}
-                  href={`/products?category=${collection.id}`}
-                  className="group relative block min-h-[240px] overflow-hidden border border-[#e0e0dc]"
-                >
-                  <Image
-                    src={collection.image?.src || heroImage}
-                    alt={collection.name}
-                    fill
-                    className="object-cover transition duration-500 group-hover:scale-[1.02]"
-                    sizes="(max-width: 768px) 100vw, 25vw"
-                  />
-                  <div className="absolute inset-0 bg-black/25" />
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <h3 className="text-3xl font-black uppercase tracking-[0.12em] text-white">
-                      Camisetas
-                    </h3>
-                  </div>
-                </Link>
-              );
-            }
+        <div className="container-page grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-4">
+          {collections.map((collection, index) => {
+            const hasImage = collection.image?.src;
+            const isFirst = index === 0;
 
             return (
-              <Link key={collection.id} href={`/products?category=${collection.id}`} className="panel group p-5 transition hover:bg-[#f2f2ef]">
-                <p className="kicker">Collection</p>
-                <h3 className="mt-2 text-xl font-bold uppercase text-[#111]">{collection.name}</h3>
-                <p className="mt-2 text-xs uppercase tracking-[0.14em] text-[#666]">{collection.count} productos</p>
+              <Link
+                key={collection.id}
+                href={`/products?category=${collection.id}`}
+                className={`group relative overflow-hidden ${
+                  isFirst ? 'sm:col-span-2 sm:row-span-2' : ''
+                }`}
+              >
+                <div className={`relative overflow-hidden ${
+                  isFirst ? 'h-[460px] sm:h-[540px]' : 'h-[220px] sm:h-[260px]'
+                }`}>
+                  {hasImage ? (
+                    <Image
+                      src={collection.image.src}
+                      alt={collection.name}
+                      fill
+                      className="object-cover transition duration-700 ease-out group-hover:scale-105"
+                      sizes={isFirst ? '(max-width: 768px) 100vw, 50vw' : '(max-width: 768px) 50vw, 25vw'}
+                    />
+                  ) : (
+                    <div className="absolute inset-0 bg-[#eeede9]" />
+                  )}
+
+                  <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/60 to-transparent p-4 pt-10 md:p-6 md:pt-14">
+                    <h3 className={`font-bold uppercase tracking-wide text-white ${
+                      isFirst ? 'text-2xl sm:text-3xl md:text-4xl' : 'text-base sm:text-lg md:text-xl'
+                    }`}>
+                      {collection.name}
+                    </h3>
+                  </div>
+                </div>
               </Link>
             );
           })}

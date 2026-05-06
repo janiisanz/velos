@@ -8,27 +8,20 @@ export default function ProductCard({ product }) {
   const image = product.images?.[0]?.src || 'https://placehold.co/900x1200/f1f1ef/111?text=VELOS';
 
   return (
-    <article className="group">
-      <Link href={`/product/${product.slug}`} className="relative block aspect-[4/5] overflow-hidden bg-[#efefec]">
+    <article className="group cursor-pointer">
+      <Link href={`/product/${product.slug}`} className="relative block aspect-[4/5] overflow-hidden bg-[#eeede9]">
         <Image
           src={image}
           alt={product.name}
           fill
-          sizes="(max-width: 768px) 100vw, 25vw"
-          className="object-cover transition duration-500 group-hover:scale-[1.02]"
+          sizes="(max-width: 768px) 50vw, 25vw"
+          className="object-cover transition duration-700 ease-out group-hover:scale-105"
         />
       </Link>
 
-      <div className="space-y-2 pt-4">
-        <h3 className="line-clamp-1 text-sm font-semibold uppercase tracking-[0.08em] text-[#111]">{product.name}</h3>
-        <p className="text-sm text-[#333]">{formatPrice(product.price)}</p>
-        <button
-          type="button"
-          onClick={() => addItem(product, 1)}
-          className="mt-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-[#111] underline underline-offset-4"
-        >
-          Añadir
-        </button>
+      <div className="mt-4 space-y-1.5">
+        <h3 className="text-sm font-bold uppercase tracking-tight text-[#111]">{product.name}</h3>
+        <p className="text-sm font-semibold text-[#111]">{formatPrice(product.price)}</p>
       </div>
     </article>
   );

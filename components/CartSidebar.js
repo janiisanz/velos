@@ -32,16 +32,23 @@ export default function CartSidebar() {
             ) : (
               <ul className="space-y-3">
                 {items.map((item) => (
-                  <li key={item.id} className="flex gap-3 border border-[#ecece8] p-3">
+                  <li key={item.uniqueId} className="flex gap-3 border border-[#ecece8] p-3">
                     <div className="relative h-20 w-16 overflow-hidden bg-[#f1f1ef]">
                       <Image src={item.image} alt={item.name} fill className="object-cover" sizes="80px" />
                     </div>
                     <div className="flex-1">
                       <p className="line-clamp-1 text-sm font-semibold uppercase text-[#111]">{item.name}</p>
                       <p className="mt-1 text-sm text-[#333]">{formatPrice(item.price)}</p>
+                      {(item.selectedSize || item.selectedColor) && (
+                        <p className="mt-1 text-xs text-[#666]">
+                          {item.selectedSize && <span>Talla: {item.selectedSize}</span>}
+                          {item.selectedSize && item.selectedColor && <span> • </span>}
+                          {item.selectedColor && <span>Color: {item.selectedColor}</span>}
+                        </p>
+                      )}
                       <div className="mt-2 flex items-center gap-2">
-                        <input type="number" min="1" value={item.quantity} onChange={(e) => updateQuantity(item.id, Number(e.target.value))} className="w-16 border border-[#d8d8d4] px-2 py-1 text-sm text-[#111]" />
-                        <button type="button" onClick={() => removeItem(item.id)} className="text-[11px] uppercase tracking-[0.1em] text-[#9a2f2f]">Eliminar</button>
+                        <input type="number" min="1" value={item.quantity} onChange={(e) => updateQuantity(item.uniqueId, Number(e.target.value))} className="w-16 border border-[#d8d8d4] px-2 py-1 text-sm text-[#111]" />
+                        <button type="button" onClick={() => removeItem(item.uniqueId)} className="text-[11px] uppercase tracking-[0.1em] text-[#9a2f2f]">Eliminar</button>
                       </div>
                     </div>
                   </li>

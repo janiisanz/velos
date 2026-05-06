@@ -32,8 +32,8 @@ export default function NewsletterSignup() {
 
   return (
     <div>
-      <h4 className="kicker">Newsletter</h4>
-      <p className="mt-3 text-sm text-[#666]">Ofertas, drops y lanzamientos.</p>
+      <h4 className="text-xs font-bold uppercase tracking-wider text-white">Newsletter</h4>
+      <p className="mt-3 text-sm text-white/80">Ofertas, drops y lanzamientos.</p>
 
       <form onSubmit={submit} className="mt-3 flex flex-col gap-2">
         <input
@@ -42,14 +42,14 @@ export default function NewsletterSignup() {
           onChange={(event) => setEmail(event.target.value)}
           required
           placeholder="tuemail@dominio.com"
-          className="border border-[#d8d8d4] bg-white px-3 py-2 text-sm text-[#111] placeholder:text-[#888]"
+          className="border border-white/30 bg-white/10 px-3 py-2 text-sm text-white placeholder:text-white/50 focus:border-white/50 focus:outline-none"
         />
-        <button type="submit" disabled={status === 'loading'} className="bg-[#111] px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-white disabled:opacity-60">
+        <button type="submit" disabled={status === 'loading'} className="bg-white px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-black transition hover:bg-white/90 disabled:opacity-60">
           {status === 'loading' ? 'Enviando' : 'Unirme'}
         </button>
       </form>
 
-      {message ? <p className={`mt-2 text-xs ${status === 'error' ? 'text-[#9a2f2f]' : 'text-[#1b6b3a]'}`}>{message}</p> : null}
+      {message ? <p className={`mt-2 text-xs ${status === 'error' ? 'text-red-300' : 'text-green-300'}`}>{message}</p> : null}
     </div>
   );
 }

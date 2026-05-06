@@ -5,7 +5,7 @@ import Header from './Header';
 
 export default function Layout({ children }) {
   return (
-    <div className="min-h-screen bg-[#f7f7f5] text-[#151515]">
+    <div className="min-h-screen bg-white text-black">
       <Header />
       <main>{children}</main>
       <Footer />

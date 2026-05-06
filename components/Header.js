@@ -21,11 +21,20 @@ export default function Header() {
   const [onHero, setOnHero] = useState(isHome);
   const [shopOpen, setShopOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [search, setSearch] = useState('');
   const closeShopTimerRef = useRef(null);
 
   const { data } = useSWR('/api/categories', fetcher);
-  const categories = useMemo(() => (data?.categories || []).slice(0, 8), [data?.categories]);
+  const categories = useMemo(() => {
+    const allCategories = data?.categories || [];
+    const parentCategories = allCategories.filter((cat) => cat.parent === 0);
+    
+    return parentCategories.map((parent) => ({
+      ...parent,
+      children: allCategories.filter((cat) => cat.parent === parent.id)
+    })).slice(0, 8);
+  }, [data?.categories]);
 
   useEffect(() => {
     if (!isHome) {
@@ -52,6 +61,7 @@ export default function Header() {
     // Cierra overlays al cambiar de ruta.
     setShopOpen(false);
     setSearchOpen(false);
+    setMobileMenuOpen(false);
   }, [router.asPath]);
 
   useEffect(() => () => {
@@ -62,10 +72,10 @@ export default function Header() {
 
   const positionClass = isHome ? 'fixed inset-x-0 top-0' : 'sticky top-0';
   const headerClass = onHero
-    ? `${positionClass} z-40 border-b border-black/10 bg-white/30 backdrop-blur-md`
-    : `${positionClass} z-40 border-b border-white/30 bg-white/55 backdrop-blur-md`;
-  const textClass = onHero ? 'text-white' : 'text-[#333]';
-  const badgeClass = onHero ? 'bg-white text-[#111]' : 'bg-[#111] text-white';
+    ? `${positionClass} z-40 bg-transparent`
+    : `${positionClass} z-40 border-b border-[#e5e5e5] bg-white`;
+  const textClass = onHero ? 'text-white' : 'text-black';
+  const badgeClass = onHero ? 'bg-white text-black' : 'bg-black text-white';
 
   const onSearchSubmit = (event) => {
     event.preventDefault();
@@ -75,14 +85,23 @@ export default function Header() {
 
   return (
     <header className={headerClass}>
-      <div className="container-page relative flex h-16 items-center justify-between">
-        <Link href="/" className="inline-flex items-center" aria-label="Velos home">
+      <div className="container-page relative flex h-20 items-center justify-between md:h-24">
+        {/* Logo a la izquierda */}
+        <Link href="/" className="relative inline-flex items-center" aria-label="Velos home">
           <Image
             src="/logo.png"
             alt="Velos logo"
             width={116}
             height={32}
-            className={`h-8 w-auto ${onHero ? 'brightness-0 invert' : ''}`}
+            className={`h-7 w-auto transition-all duration-500 md:h-8 ${onHero ? 'opacity-100 brightness-0 invert' : 'opacity-0 scale-90'}`}
+            priority
+          />
+          <Image
+            src="/velos1.png"
+            alt="Velos logo"
+            width={928}
+            height={626}
+            className={`absolute left-0 top-1/2 -translate-y-1/2 h-auto w-56 transition-all duration-500 ease-out md:w-80 ${onHero ? 'opacity-0 scale-90' : 'opacity-100 scale-100'}`}
             priority
           />
         </Link>
@@ -96,7 +115,7 @@ export default function Header() {
               setShopOpen(true);
             }}
             onMouseLeave={() => {
-              closeShopTimerRef.current = setTimeout(() => setShopOpen(false), 180);
+              closeShopTimerRef.current = setTimeout(() => setShopOpen(false), 200);
             }}
           >
             <button
@@ -108,23 +127,45 @@ export default function Header() {
             </button>
 
             <div
-              className={`absolute left-0 top-full mt-4 w-[360px] border border-[#d8d8d4] border-t-4 border-t-[#2b2b2b] bg-[#f2f2f1] p-6 text-[#222] transition-all duration-200 ${
+              className={`absolute left-0 top-full mt-4 w-64 bg-white shadow-lg transition-all duration-200 ${
                 shopOpen ? 'pointer-events-auto translate-y-0 opacity-100' : 'pointer-events-none -translate-y-1 opacity-0'
               }`}
             >
-              <Link href="/products" onClick={() => setShopOpen(false)} className="block py-2 text-[14px] font-medium hover:opacity-70">
-                Ver todo
-              </Link>
-              {categories.map((category) => (
+              <div className="py-2">
                 <Link
-                  key={category.id}
-                  href={`/products?category=${category.id}`}
+                  href="/products"
                   onClick={() => setShopOpen(false)}
-                  className="block py-2 text-[14px] font-medium hover:opacity-70"
+                  className="block px-6 py-3 text-sm font-bold uppercase tracking-tight text-black transition hover:bg-[#f5f5f5]"
                 >
-                  {category.name}
+                  Ver todo
                 </Link>
-              ))}
+                <div className="my-2 border-t border-[#e5e5e5]" />
+                {categories.map((category) => (
+                  <div key={category.id}>
+                    <Link
+                      href={`/products?category=${category.id}`}
+                      onClick={() => setShopOpen(false)}
+                      className="block px-6 py-2.5 text-sm font-bold text-black transition hover:bg-[#f5f5f5]"
+                    >
+                      {category.name}
+                    </Link>
+                    {category.children && category.children.length > 0 && (
+                      <div className="bg-[#fafafa] py-1">
+                        {category.children.map((child) => (
+                          <Link
+                            key={child.id}
+                            href={`/products?category=${child.id}`}
+                            onClick={() => setShopOpen(false)}
+                            className="block px-10 py-2 text-xs text-[#666] transition hover:bg-[#f0f0f0] hover:text-black"
+                          >
+                            {child.name}
+                          </Link>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
           <Link href="/products">New In</Link>
@@ -132,6 +173,7 @@ export default function Header() {
         </nav>
 
         <div className={`flex items-center gap-4 text-xs font-semibold uppercase tracking-[0.12em] ${textClass}`}>
+          {/* Buscar */}
           <button
             type="button"
             aria-label="Buscar"
@@ -147,30 +189,45 @@ export default function Header() {
             </svg>
           </button>
 
-          <Link href="/account" aria-label="Cuenta" className="hidden sm:inline-flex">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-5 w-5" aria-hidden="true">
-              <circle cx="12" cy="8" r="3.2" />
-              <path strokeLinecap="round" strokeLinejoin="round" d="M5.5 19a6.5 6.5 0 0 1 13 0" />
+          {/* Login */}
+          <Link href="/account" className="inline-flex" aria-label="Mi cuenta">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-5 w-5">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z" />
             </svg>
           </Link>
+
+          {/* Carrito */}
           <button
             type="button"
+            aria-label="Carrito"
             onClick={toggleCart}
-            aria-label="Abrir carrito"
-            className="relative inline-flex h-10 w-10 items-center justify-center text-current"
+            className="relative inline-flex"
           >
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-5 w-5" aria-hidden="true">
-              <circle cx="9" cy="20" r="1.5" />
-              <circle cx="17" cy="20" r="1.5" />
-              <path strokeLinecap="round" strokeLinejoin="round" d="M3 4h2l2.4 10.2a1 1 0 0 0 1 .8h8.8a1 1 0 0 0 1-.8L20 7H7" />
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4ZM3 6h18M16 10a4 4 0 0 1-8 0" />
             </svg>
-            <span className={`absolute -right-1 -top-1 inline-flex min-h-4 min-w-4 items-center justify-center rounded-full px-1 text-[9px] font-bold leading-none ${badgeClass}`}>
-              {count}
-            </span>
+            {count > 0 && (
+              <span className="absolute -right-1.5 -top-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-black text-[9px] font-semibold text-white">
+                {count}
+              </span>
+            )}
+          </button>
+
+          {/* Menú hamburguesa - solo móvil */}
+          <button
+            type="button"
+            onClick={() => setMobileMenuOpen(true)}
+            className="md:hidden"
+            aria-label="Abrir menú"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-6 w-6">
+              <path strokeLinecap="round" d="M3 6h18M3 12h18M3 18h18" />
+            </svg>
           </button>
         </div>
       </div>
 
+      {/* Buscador desplegable */}
       <div
         className={`overflow-hidden border-t border-[#e7e7e3] bg-white transition-all duration-300 ease-out ${
           searchOpen ? 'max-h-28 opacity-100 translate-y-0' : 'max-h-0 opacity-0 -translate-y-1'
@@ -178,34 +235,124 @@ export default function Header() {
         aria-hidden={!searchOpen}
       >
         <div className="container-page flex items-center gap-4 py-4">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-6 w-6 text-[#333]" aria-hidden="true">
-              <circle cx="11" cy="11" r="6.5" />
-              <path strokeLinecap="round" strokeLinejoin="round" d="m16 16 4 4" />
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-6 w-6 text-[#333]" aria-hidden="true">
+            <circle cx="11" cy="11" r="6.5" />
+            <path strokeLinecap="round" strokeLinejoin="round" d="m16 16 4 4" />
+          </svg>
+
+          <form onSubmit={onSearchSubmit} className="flex-1">
+            <input
+              type="search"
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              placeholder="Buscar productos..."
+              autoFocus={searchOpen}
+              className="search-input h-12 w-full border-0 bg-transparent text-3xl font-medium text-[#222] outline-none placeholder:text-[#8b8b8b]"
+            />
+          </form>
+
+          <button
+            type="button"
+            onClick={() => setSearchOpen(false)}
+            aria-label="Cerrar buscador"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-8 w-8" aria-hidden="true">
+              <path strokeLinecap="round" d="M5 5 19 19M19 5 5 19" />
             </svg>
+          </button>
+        </div>
+      </div>
 
-            <form onSubmit={onSearchSubmit} className="flex-1">
-              <input
-                type="search"
-                value={search}
-                onChange={(event) => setSearch(event.target.value)}
-                placeholder="Search for..."
-                autoFocus={searchOpen}
-                className="search-input h-12 w-full border-0 bg-transparent text-3xl font-medium text-[#222] outline-none placeholder:text-[#8b8b8b]"
-              />
-            </form>
-
+      {/* Menú móvil */}
+      <div
+        className={`fixed inset-y-0 right-0 z-50 w-full max-w-sm transform bg-white shadow-2xl transition-transform duration-300 ease-out md:hidden ${
+          mobileMenuOpen ? 'translate-x-0' : 'translate-x-full'
+        }`}
+      >
+        <div className="flex h-full flex-col">
+          {/* Header del menú móvil */}
+          <div className="flex items-center justify-between border-b border-[#e5e5e5] p-4">
+            <h2 className="text-lg font-black uppercase tracking-tight">Menú</h2>
             <button
               type="button"
-              onClick={() => setSearchOpen(false)}
-              aria-label="Cerrar buscador"
-              className="text-[#333]"
+              onClick={() => setMobileMenuOpen(false)}
+              aria-label="Cerrar menú"
+              className="rounded-full p-2 transition hover:bg-[#f5f5f5]"
             >
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-8 w-8" aria-hidden="true">
-                <path strokeLinecap="round" d="M5 5 19 19M19 5 5 19" />
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-6 w-6">
+                <path strokeLinecap="round" d="M6 6l12 12M18 6L6 18" />
               </svg>
             </button>
           </div>
+
+          {/* Contenido del menú móvil */}
+          <div className="flex-1 overflow-y-auto">
+            <div className="p-4">
+              <Link
+                href="/products"
+                onClick={() => setMobileMenuOpen(false)}
+                className="block rounded-lg bg-black px-6 py-4 text-center font-bold uppercase tracking-tight text-white transition hover:bg-gray-900"
+              >
+                Ver todo
+              </Link>
+            </div>
+
+            <nav className="border-t border-[#e5e5e5]">
+              <Link
+                href="/products"
+                onClick={() => setMobileMenuOpen(false)}
+                className="block border-b border-[#e5e5e5] px-4 py-4 text-sm font-bold uppercase tracking-tight text-black transition hover:bg-[#f5f5f5]"
+              >
+                New In
+              </Link>
+              <Link
+                href="/products"
+                onClick={() => setMobileMenuOpen(false)}
+                className="block border-b border-[#e5e5e5] px-4 py-4 text-sm font-bold uppercase tracking-tight text-black transition hover:bg-[#f5f5f5]"
+              >
+                Collections
+              </Link>
+            </nav>
+
+            <div className="border-t-4 border-black pt-4">
+              <p className="px-4 pb-2 text-xs font-bold uppercase tracking-wider text-[#666]">Categorías</p>
+              {categories.map((category) => (
+                <div key={category.id} className="border-b border-[#e5e5e5]">
+                  <Link
+                    href={`/products?category=${category.id}`}
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="block px-4 py-3 text-sm font-bold text-black transition hover:bg-[#f5f5f5]"
+                  >
+                    {category.name}
+                  </Link>
+                  {category.children && category.children.length > 0 && (
+                    <div className="bg-[#fafafa]">
+                      {category.children.map((child) => (
+                        <Link
+                          key={child.id}
+                          href={`/products?category=${child.id}`}
+                          onClick={() => setMobileMenuOpen(false)}
+                          className="block px-8 py-2.5 text-xs text-[#666] transition hover:bg-[#f0f0f0] hover:text-black"
+                        >
+                          {child.name}
+                        </Link>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
       </div>
+
+      {/* Overlay para menú móvil */}
+      {mobileMenuOpen && (
+        <div
+          className="fixed inset-0 z-40 bg-black/50 transition-opacity duration-300 md:hidden"
+          onClick={() => setMobileMenuOpen(false)}
+        />
+      )}
     </header>
   );
 }
